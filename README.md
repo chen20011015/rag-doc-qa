@@ -6,7 +6,8 @@
 
 ## 在线 Demo
 
-> 部署后把链接填在这里：https://your-app.streamlit.app
+> 部署后把链接填在这里：[https://your-app.streamlit.app](https://rag-doc-app-awugwunppu9i5h2ghmnvg2.streamlit.app
+)
 
 ## 功能
 
