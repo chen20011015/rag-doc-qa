@@ -41,7 +41,7 @@ flowchart LR
 pip install -r requirements.txt
 
 # Windows PowerShell
-$env:API_KEY="你的key"
+$env:API_KEY="5cd6f536b43c4f5b898d5c4c82cee7c3.LejOdxx4GZpL5lbO"
 streamlit run app.py
 ```
 
