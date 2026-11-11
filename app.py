@@ -229,7 +229,3 @@ if question:
         except Exception as exc:  # 兜底：未预期异常
             st.error(f"未预期的错误：{type(exc).__name__}: {exc}")
             st.session_state.messages.pop()
-
-                )
-        except RagError as exc:
-            st.error(str(exc))
