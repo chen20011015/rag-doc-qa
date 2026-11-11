@@ -42,7 +42,7 @@ from rag_core import (  # noqa: E402
 MAX_FILE_MB = 20
 SUPPORTED = ["pdf", "docx", "txt", "md"]
 
-st.set_page_config(page_title="文档智能问答 · RAG", page_icon="📚", layout="wide")
+st.set_page_config(page_title="文档智能问答 · RAG", page_icon="📚", layout="centered")
 
 
 # ---------------------------------------------------------------- 索引构建
@@ -158,6 +158,10 @@ if uploaded:
             st.session_state.pop("index", None)
             st.error(str(exc))
             st.stop()
+        except Exception as exc:  # 兜底：未知异常也要给出可读提示，不能让整页崩白
+            st.session_state.pop("index", None)
+            st.error(f"建立索引失败：{type(exc).__name__}: {exc}")
+            st.stop()
 
 # ---------------------------------------------------------------- 主区域
 
@@ -216,6 +220,16 @@ if question:
                 render_sources(hits)
                 st.session_state.messages.append(
                     {"role": "assistant", "content": answer, "hits": hits}
+                )
+        except RagError as exc:
+            st.error(str(exc))
+            # 回滚本轮提问，避免历史里留下没有回复的孤立 user 消息
+            # （否则下一轮拼上下文时会把这条无应答的问题一起带上）
+            st.session_state.messages.pop()
+        except Exception as exc:  # 兜底：未预期异常
+            st.error(f"未预期的错误：{type(exc).__name__}: {exc}")
+            st.session_state.messages.pop()
+
                 )
         except RagError as exc:
             st.error(str(exc))
