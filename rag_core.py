@@ -136,6 +136,13 @@ def split_text(text: str, size: int = 480, overlap: int = 80) -> list[str]:
     """按中文句读切分，尽量保持句子完整；相邻片段保留 overlap 字重叠。"""
     if not text or not text.strip():
         return []
+    if size <= 0:
+        raise RagError("片段长度必须是正整数。")
+    # 关键保护：overlap 不得达到 size，否则每次切分后缓冲区长度不下降，
+    # 下一句仍然超限，会陷入死循环。限制在 size 的一半以内，
+    # 既保证重叠语义，又保证每个片段至少有一半是新内容。
+    overlap = max(0, min(overlap, size // 2))
+
     cleaned = _NL.sub("\n\n", _WS.sub(" ", text)).strip()
     sentences = [s for s in _SENTENCE.findall(cleaned) if s.strip()]
 
@@ -152,15 +159,13 @@ def split_text(text: str, size: int = 480, overlap: int = 80) -> list[str]:
             continue
 
         if length + len(sentence) > size:
-            chunks.append("".join(buffer))
-            tail: list[str] = []
-            tail_len = 0
-            for prev in reversed(buffer):
-                if tail_len + len(prev) > overlap:
-                    break
-                tail.insert(0, prev)
-                tail_len += len(prev)
-            buffer, length = tail, tail_len
+            merged = "".join(buffer)
+            chunks.append(merged)
+            # 按字符截取尾部，保证重叠量精确等于 overlap。
+            # 原实现按整句回退，句子一旦长于 overlap 就 break，重叠会意外归零。
+            tail = merged[-overlap:] if overlap > 0 else ""
+            buffer = [tail] if tail else []
+            length = len(tail)
 
         buffer.append(sentence)
         length += len(sentence)
@@ -337,6 +342,10 @@ def chat_stream(messages: list[dict], timeout: int = 180) -> Iterator[str]:
         if content:
             emitted = True
             yield content
+
+    if not emitted:
+        raise RagError("模型没有返回内容，可能是额度不足或触发内容审核，请稍后重试。")
+
 
     if not emitted:
         raise RagError("模型没有返回内容，可能是额度不足或触发内容审核，请稍后重试。")
